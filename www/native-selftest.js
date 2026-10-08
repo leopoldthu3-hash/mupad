@@ -23,4 +23,4 @@ try{
   const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'print("restarted")'}]});require(result.stdout==='restarted\n',result.error);
  });
  report({status:'passed',results});
-}catch(error){report({status:'failed',results,error:String(error.stack||error)});}
+}catch(error){report({status:'failed',results,error:String(error.message||error)+'\n'+String(error.stack||'')});}

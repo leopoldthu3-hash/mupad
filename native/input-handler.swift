@@ -18,6 +18,7 @@ extension WebViewAssetHandler {
             return true
         }
         guard url.path == "/__mupad_input__" else { return false }
+        NSLog("MUPAD native-stdin request %@", url.absoluteString)
         let prompt = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "prompt" })?.value ?? "Python input"
         if ProcessInfo.processInfo.arguments.contains("--mupad-selftest") {
             muPadReply(task, object: ["value": "Ada🙂"])
