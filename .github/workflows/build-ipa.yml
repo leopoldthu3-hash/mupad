@@ -20,6 +20,7 @@ jobs:
         run: |
           npm ci
           npm run bundle
+          npx cap add ios
           npx cap sync ios
       - name: Build an unsigned iPhone/iPad app
         run: |
