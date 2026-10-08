@@ -44,7 +44,7 @@ const runner=new PythonRunner({
  onState:state=>{
   $('#runButton').disabled=state!=='idle';$('#stopButton').disabled=state==='idle';
   $('#runtimeStatus').textContent=state==='loading'?'Loading local Python…':state==='running'?'Python running locally':'Local Python · ready';
-  if(state==='idle'){$('#inputForm').hidden=true;inputRequest=null;}
+  if(state==='idle'){$('#inputForm').hidden=true;inputRequest=null;if(window.__MUPAD_STDIN_URL__)fetch(window.__MUPAD_STDIN_URL__+'?cancel=1').catch(()=>{});}
  },
  onOutput:({text})=>append(text),
  onInput:request=>{inputRequest=request;$('#inputForm').hidden=false;$('#inputPrompt').textContent=request.prompt||'Python input';$('#stdinValue').value='';$('#stdinValue').focus();}
@@ -54,7 +54,7 @@ async function runCode(){
  saveEditor();transcript='';showOutput();$('#output').classList.remove('error');$('#runMeta').textContent='Starting…';
  const lines=$('#inputLines').value;
  try{
-  const result=await runner.run({files:workspace.files.map(f=>({...f})),filename:workspace.activeFile,stdin:lines?lines.replace(/\r\n?/g,'\n').split('\n'):[],interactiveInput:true,nativeInput:Capacitor.getPlatform()==='ios'});
+  const result=await runner.run({files:workspace.files.map(f=>({...f})),filename:workspace.activeFile,stdin:lines?lines.replace(/\r\n?/g,'\n').split('\n'):[],interactiveInput:true,nativeInput:Capacitor.getPlatform()==='ios'?(window.__MUPAD_STDIN_URL__||true):false});
   if(result.error){if(transcript&&!transcript.endsWith('\n'))append('\n');append(result.error);$('#output').classList.add('error');}
   if(!transcript&&result.status==='success')append('Program finished with no output.');
   $('#runMeta').textContent=`${result.status==='stopped'?'Stopped':result.status==='error'?'Error':'Finished'} · ${Math.round(result.elapsedMs)} ms`;

@@ -13,9 +13,9 @@ if(!source.includes('muPadHandleRequest')){
 }
 const app='ios/App/App/';
 let delegate=await readFile(app+'AppDelegate.swift','utf8');
-delegate=delegate.split('\nclass MuPadViewController:')[0];
+delegate=delegate.split('\nimport Network')[0].split('\nclass MuPadViewController:')[0];
 if(!delegate.includes('import WebKit'))delegate=delegate.replace('import Capacitor','import Capacitor\nimport WebKit');
-delegate+='\n'+await readFile('native/controller.swift','utf8');
+delegate+='\n'+await readFile('native/http-stdin.swift','utf8')+'\n'+await readFile('native/controller.swift','utf8');
 await writeFile(app+'AppDelegate.swift',delegate);
 await writeFile('www/native-diagnostics.js',await readFile('native/diagnostics.js','utf8'));
 await writeFile(app+'public/native-diagnostics.js',await readFile('native/diagnostics.js','utf8'));
@@ -27,6 +27,10 @@ const storyboard=app+'Base.lproj/Main.storyboard';
 let xml=await readFile(storyboard,'utf8');
 xml=xml.replace('customClass="CAPBridgeViewController" customModule="Capacitor"','customClass="MuPadViewController" customModule="App"');
 await writeFile(storyboard,xml);
+const infoPath=app+'Info.plist';
+let info=await readFile(infoPath,'utf8');
+if(!info.includes('NSAllowsLocalNetworking'))info=info.replace('<key>LSRequiresIPhoneOS</key>','<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>\n\t<key>LSRequiresIPhoneOS</key>');
+await writeFile(infoPath,info);
 const project='ios/App/App.xcodeproj/project.pbxproj';
 let pbx=await readFile(project,'utf8');
 await writeFile(project,pbx.replaceAll('IPHONEOS_DEPLOYMENT_TARGET = 15.0;','IPHONEOS_DEPLOYMENT_TARGET = 17.0;').replaceAll('MARKETING_VERSION = 1.0;','MARKETING_VERSION = 0.2.0;').replaceAll('CURRENT_PROJECT_VERSION = 1;','CURRENT_PROJECT_VERSION = 2;'));

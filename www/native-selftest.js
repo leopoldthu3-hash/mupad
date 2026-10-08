@@ -10,8 +10,8 @@ try{
   const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'import helper\nprint(__name__, __file__, helper.answer)\nprint(sum(i*i for i in range(5)))'},{name:'helper.py',content:'answer=42'}]});
   require(result.status==='success',result.error);require(result.stdout==='__main__ /workspace/main.py 42\n30\n',result.stdout);
  });
- await check('unchanged nested input() over native same-origin worker stdin',async()=>{
-  const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'def ask():\n    return input("Name: ")\nprint("Hello", ask())'}],interactiveInput:true,nativeInput:true});
+ await check('unchanged nested input() over native loopback worker stdin and native prompt',async()=>{
+  const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'def ask():\n    return input("Name: ")\nprint("Hello", ask())'}],interactiveInput:true,nativeInput:window.__MUPAD_STDIN_URL__||true});
   require(result.status==='success',result.error);require(result.stdout==='Name: Hello Ada🙂\n',result.stdout);
  });
  await check('live output and hard Stop of infinite Python loop, then restart',async()=>{

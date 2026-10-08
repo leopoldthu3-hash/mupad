@@ -20,7 +20,7 @@ self.onmessage = async ({data}) => {
     const prompt=stdout.slice(stdout.lastIndexOf('\n')+1);
     if(data.nativeInput){
       const request=new XMLHttpRequest();
-      request.open('GET',new URL('/__mupad_input__?prompt='+encodeURIComponent(prompt),self.location.href).href,false);
+      request.open('GET',typeof data.nativeInput==='string'?data.nativeInput+'?prompt='+encodeURIComponent(prompt):new URL('/__mupad_input__?prompt='+encodeURIComponent(prompt),self.location.href).href,false);
       request.send();
       if(request.status!==200)throw new Error('Native Python input bridge failed');
       return JSON.parse(request.responseText).value;
