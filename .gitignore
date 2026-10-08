@@ -2,8 +2,15 @@ node_modules/
 ios/
 www/pyodide/
 www/app.bundle.js
+www/third-party-notices.txt
 test-results/
 playwright-report/
 __pycache__/
 *.ipa
 .DS_Store
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+qa-*.png

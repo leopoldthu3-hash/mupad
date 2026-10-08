@@ -2,6 +2,12 @@
   "name": "mupad",
   "version": "0.2.0",
   "private": true,
+  "description": "A simple Python editor for iPad. Write normal Python, run it locally, and keep your scripts on your device.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leopoldthu3-hash/mupad.git"
+  },
   "type": "module",
   "scripts": {
     "bundle": "node scripts/bundle.mjs",
