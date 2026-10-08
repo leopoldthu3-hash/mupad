@@ -1,3 +1,5 @@
+![MuPad: Python for your iPad](docs/images/mupad-banner.png)
+
 # MuPad
 
 A small Python editor for iPad. Open a `.py` file, write some code, and run it right on your device. Your code doesn't get sent to a server.
@@ -7,6 +9,14 @@ MuPad takes inspiration from the simple feel of [Mu Editor](https://codewith.mu/
 ![MuPad editor with Python code and program output](docs/images/editor-ipad.png)
 
 *The editor running in WebKit at an iPad-sized viewport.*
+
+## Download
+
+[**Download the latest IPA from Releases**](https://github.com/leopoldthu3-hash/mupad/releases/latest)
+
+Choose the `.ipa` under **Assets**. The download is unsigned and needs a valid signature through your chosen sideloading setup before it can be installed. It isn't an App Store or TestFlight build. Release downloads don't require a GitHub account.
+
+Each release includes a SHA-256 checksum and identifies the source commit used to build it. Export important scripts before replacing an existing installation.
 
 ## What you can do
 

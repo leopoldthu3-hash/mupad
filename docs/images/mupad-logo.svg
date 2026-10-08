@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">MuPad logo</title>
+<desc id="desc">An original mint M and small run triangle on a dark rounded editor tile.</desc>
+<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1c2d42"/><stop offset="1" stop-color="#0c1525"/></linearGradient><linearGradient id="mint" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a9f5d3"/><stop offset="1" stop-color="#72dfb3"/></linearGradient></defs>
+<rect x="8" y="8" width="496" height="496" rx="106" fill="url(#tile)"/>
+<rect x="11" y="11" width="490" height="490" rx="103" fill="none" stroke="#34475d" stroke-width="3"/>
+<path d="M140 107H372" stroke="#516981" stroke-width="12" stroke-linecap="round"/>
+<path d="M126 341V177L256 290L386 177V341" fill="none" stroke="url(#mint)" stroke-width="43" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M239 358L292 389L239 420Z" fill="#f0f6ff" stroke="#f0f6ff" stroke-width="8" stroke-linejoin="round"/>
+</svg>
