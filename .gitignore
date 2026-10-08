@@ -1,0 +1,5 @@
+node_modules/
+ios/
+www/pyodide/
+*.ipa
+.DS_Store

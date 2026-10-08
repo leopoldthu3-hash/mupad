@@ -1,0 +1,6 @@
+{
+  "appId": "no.leopold.mupad",
+  "appName": "MuPad",
+  "webDir": "www",
+  "server": {"iosScheme": "mupad"}
+}

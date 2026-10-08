@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>MuPad — Python editor</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">μ</span><span>MuPad</span><small>LOCAL PYTHON</small></div>
+      <div class="status" id="runtimeStatus" aria-live="polite">Python ready when you are</div>
+      <button class="run" id="runButton" type="button">▶ Run</button>
+    </header>
+    <section class="workspace">
+      <aside class="files" aria-label="Python files">
+        <div class="files-title"><span>FILES</span><button id="newFileButton" type="button" aria-label="New Python file">＋</button></div>
+        <nav id="fileList"></nav>
+        <div class="file-actions"><button id="renameButton" type="button">Rename</button><button id="saveButton" type="button">Save</button></div>
+      </aside>
+      <section class="editor-pane">
+        <div class="tabbar"><span id="activeName">main.py</span><span class="saved" id="saveStatus">Saved locally</span></div>
+        <label class="sr-only" for="editor">Python code</label>
+        <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+      </section>
+    </section>
+    <section class="console" aria-label="Program output">
+      <div class="console-title"><span>OUTPUT</span><span id="runMeta">Ready</span><button id="clearOutput" type="button">Clear</button></div>
+      <pre id="output">Press Run to execute Python locally on this iPad.</pre>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
