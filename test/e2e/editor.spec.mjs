@@ -10,7 +10,7 @@ test('editor provides Python syntax highlighting, four-space autoindent and undo
  await expect.poll(()=>code(page)).toBe('if True:\n    print(42)');
  await expect(page.locator('.cm-gutter.cm-lineNumbers')).toBeVisible();
  await expect(page.locator('.cm-line span').first()).toBeVisible();
- await editor(page).press('Control+z');await expect.poll(()=>code(page)).not.toBe('if True:\n    print(42)');
+ await editor(page).press('ControlOrMeta+z');await expect.poll(()=>code(page)).not.toBe('if True:\n    print(42)');
 });
 test('open and export real UTF-8 Python files without changing their code',async({page})=>{
  await page.locator('#filePicker').setInputFiles({name:'lesson.py',mimeType:'text/x-python',buffer:Buffer.from('print("æøå🙂")\n')});
