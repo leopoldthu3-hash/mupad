@@ -13,11 +13,12 @@ if(!source.includes('muPadHandleRequest')){
 }
 const app='ios/App/App/';
 let delegate=await readFile(app+'AppDelegate.swift','utf8');
-if(!delegate.includes('class MuPadViewController')){
- delegate=delegate.replace('import Capacitor','import Capacitor\nimport WebKit');
- delegate+='\nclass MuPadViewController: CAPBridgeViewController {\n override func capacitorDidLoad() {\n  super.capacitorDidLoad()\n  if ProcessInfo.processInfo.arguments.contains("--mupad-selftest") {\n   webView?.configuration.userContentController.addUserScript(WKUserScript(source: "window.__MUPAD_SELFTEST__ = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))\n  }\n }\n}\n';
- await writeFile(app+'AppDelegate.swift',delegate);
-}
+delegate=delegate.split('\nclass MuPadViewController:')[0];
+if(!delegate.includes('import WebKit'))delegate=delegate.replace('import Capacitor','import Capacitor\nimport WebKit');
+delegate+='\n'+await readFile('native/controller.swift','utf8');
+await writeFile(app+'AppDelegate.swift',delegate);
+await writeFile('www/native-diagnostics.js',await readFile('native/diagnostics.js','utf8'));
+await writeFile(app+'public/native-diagnostics.js',await readFile('native/diagnostics.js','utf8'));
 try{
  let scene=await readFile(app+'SceneDelegate.swift','utf8');
  await writeFile(app+'SceneDelegate.swift',scene.replaceAll('CAPBridgeViewController()','MuPadViewController()'));

@@ -48,6 +48,9 @@ jobs:
             simulator-build.log
             device-build.log
             native-test-result.json
+            native-checkpoints.jsonl
+            native-screenshot.png
+            native-console.log
       - uses: actions/upload-artifact@v4
         with:
           name: MuPad-0.2-unsigned-ipa

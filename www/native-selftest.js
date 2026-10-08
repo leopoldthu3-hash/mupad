@@ -1,9 +1,11 @@
 import {PythonRunner} from './python-runner.mjs';
 const results=[];
-async function check(name,action){await action();results.push({name,status:'passed'});}
+const report=value=>window.__mupadReport(value);
+report({status:'checkpoint',phase:'app-initialized'});
+async function check(name,action){report({status:'checkpoint',phase:'test-start',name});await action();results.push({name,status:'passed'});report({status:'checkpoint',phase:'test-passed',name});}
 const require=(condition,message)=>{if(!condition)throw new Error(message);};
 try{
- const runner=new PythonRunner({bootTimeoutMs:45000});
+ const runner=new PythonRunner({bootTimeoutMs:45000,onState:state=>report({status:'checkpoint',phase:'runtime-'+state})});
  await check('WKWebView local worker, modules, WASM, standard Python and workspace imports',async()=>{
   const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'import helper\nprint(__name__, __file__, helper.answer)\nprint(sum(i*i for i in range(5)))'},{name:'helper.py',content:'answer=42'}]});
   require(result.status==='success',result.error);require(result.stdout==='__main__ /workspace/main.py 42\n30\n',result.stdout);
@@ -20,5 +22,5 @@ try{
   runner.stop();require((await execution).status==='stopped','Stop failed');
   const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'print("restarted")'}]});require(result.stdout==='restarted\n',result.error);
  });
- await fetch('/__mupad_test_result__?result='+encodeURIComponent(JSON.stringify({status:'passed',results})));
-}catch(error){await fetch('/__mupad_test_result__?result='+encodeURIComponent(JSON.stringify({status:'failed',results,error:String(error.stack||error)})));}
+ report({status:'passed',results});
+}catch(error){report({status:'failed',results,error:String(error.stack||error)});}
