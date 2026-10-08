@@ -1,118 +1,112 @@
-import {createWorkspace, createFile, renameFile, saveFile, runResult} from "./core.mjs";
-import {loadPyodide} from "./pyodide/pyodide.mjs";
-
-const STORAGE_KEY = "mupad-workspace-v1";
-const $ = selector => document.querySelector(selector);
-let workspace = loadWorkspace();
-let pyodide;
-
-function loadWorkspace() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved?.activeFile && Array.isArray(saved.files) && saved.files.length) return saved;
-  } catch { /* Use a fresh workspace. */ }
-  return createWorkspace();
+import {EditorState} from '@codemirror/state';
+import {EditorView,lineNumbers,highlightActiveLine,highlightActiveLineGutter,keymap,drawSelection} from '@codemirror/view';
+import {history,historyKeymap,defaultKeymap,indentWithTab,indentMore,indentLess,undo,redo} from '@codemirror/commands';
+import {python} from '@codemirror/lang-python';
+import {indentUnit,indentOnInput,syntaxHighlighting,defaultHighlightStyle,bracketMatching} from '@codemirror/language';
+import {searchKeymap,highlightSelectionMatches,openSearchPanel} from '@codemirror/search';
+import {closeBrackets,closeBracketsKeymap,autocompletion,completionKeymap} from '@codemirror/autocomplete';
+import {Capacitor} from '@capacitor/core';
+import {Filesystem,Directory,Encoding} from '@capacitor/filesystem';
+import {Share} from '@capacitor/share';
+import {createWorkspace,restoreWorkspace,createFile,renameFile,saveFile,importFile} from './core.mjs';
+import {PythonRunner} from './python-runner.mjs';
+const $=selector=>document.querySelector(selector),STORAGE_KEY='mupad-workspace-v1';
+let workspace=loadWorkspace(),inputRequest=null,transcript='',frame=null,dialogAction='new',messageTimer;
+const editorStates=new Map();
+function loadWorkspace(){try{return restoreWorkspace(JSON.parse(localStorage.getItem(STORAGE_KEY)));}catch{return createWorkspace();}}
+function message(text){$('#message').textContent=text;$('#message').hidden=false;clearTimeout(messageTimer);messageTimer=setTimeout(()=>$('#message').hidden=true,7000);}
+function persist(){
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(workspace));$('#saveStatus').textContent='Saved in app';return true;}
+ catch{$('#saveStatus').textContent='NOT SAVED · export a backup';message('App storage is unavailable or full. Your current code is still in the editor. Use Export .py to keep a copy.');return false;}
 }
-
-function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
-  $("#saveStatus").textContent = "Saved locally";
+const theme=EditorView.theme({
+ '&':{color:'#e6edf7',backgroundColor:'#0c1320'},'.cm-gutters':{backgroundColor:'#111d2d',color:'#91a5bf',border:'none'},'.cm-activeLineGutter':{backgroundColor:'#243d55'},'.cm-activeLine':{backgroundColor:'#142439'},'.cm-cursor':{borderLeftColor:'#7be4b2'},'&.cm-focused .cm-selectionBackground,.cm-selectionBackground,::selection':{backgroundColor:'#294863'},'.cm-panels':{backgroundColor:'#142439',color:'#e6edf7'},'.cm-searchMatch':{backgroundColor:'#886c2388'},'.cm-searchMatch-selected':{backgroundColor:'#b58442'},'.cm-tooltip':{backgroundColor:'#192b40',borderColor:'#42607c'}
+},{dark:true});
+function makeState(content){return EditorState.create({doc:content,extensions:[
+ lineNumbers(),highlightActiveLine(),highlightActiveLineGutter(),drawSelection(),history(),python(),indentUnit.of('    '),indentOnInput(),syntaxHighlighting(defaultHighlightStyle),bracketMatching(),closeBrackets(),autocompletion(),highlightSelectionMatches(),theme,
+ EditorView.contentAttributes.of({'aria-label':'Python code',spellcheck:'false',autocorrect:'off',autocapitalize:'off'}),
+ keymap.of([{key:'Mod-s',run:()=>{saveEditor();return true;}},{key:'F5',run:()=>{runCode();return true;}},{key:'Shift-F5',run:()=>runner.stop()} ,...closeBracketsKeymap,indentWithTab,...defaultKeymap,...historyKeymap,...searchKeymap,...completionKeymap]),
+ EditorView.updateListener.of(update=>{if(update.docChanged)saveEditor();if(update.selectionSet||update.docChanged)updateCursor();})
+]});}
+const view=new EditorView({state:makeState(workspace.files.find(f=>f.name===workspace.activeFile).content),parent:$('#editorHost')});
+function updateCursor(){const pos=view.state.selection.main.head,line=view.state.doc.lineAt(pos);$('#cursorStatus').textContent=`Ln ${line.number}, Col ${pos-line.from+1}`;}
+function saveEditor(){workspace=saveFile(workspace,workspace.activeFile,view.state.doc.toString());persist();}
+function renderFiles(){
+ $('#fileList').replaceChildren(...workspace.files.map(file=>{
+  const b=document.createElement('button');b.type='button';b.className='file'+(file.name===workspace.activeFile?' active':'');b.textContent=file.name;b.title=file.name;b.setAttribute('aria-current',file.name===workspace.activeFile?'page':'false');
+  b.addEventListener('click',()=>{if(file.name===workspace.activeFile)return;saveEditor();editorStates.set(workspace.activeFile,view.state);workspace.activeFile=file.name;persist();showActive();});return b;
+ }));
 }
-
-function activeFile() {
-  return workspace.files.find(file => file.name === workspace.activeFile);
-}
-
-function renderFiles() {
-  $("#fileList").replaceChildren(...workspace.files.map(file => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `file ${file.name === workspace.activeFile ? "active" : ""}`;
-    button.textContent = file.name;
-    button.addEventListener("click", () => {
-      saveEditor();
-      workspace.activeFile = file.name;
-      render();
-    });
-    return button;
-  }));
-}
-
-function render() {
-  const file = activeFile();
-  $("#activeName").textContent = file.name;
-  $("#editor").value = file.content;
-  renderFiles();
-}
-
-function saveEditor() {
-  workspace = saveFile(workspace, workspace.activeFile, $("#editor").value);
-  persist();
-}
-
-function showOutput(result) {
-  const consolePanel = $(".console");
-  consolePanel.classList.toggle("error", result.kind === "error");
-  $("#output").textContent = result.text;
-  $("#runMeta").textContent = result.meta;
-}
-
-async function getPython() {
-  if (pyodide) return pyodide;
-  $("#runtimeStatus").textContent = "Loading local Python…";
-  pyodide = await loadPyodide({indexURL: new URL("./pyodide/", location.href).href});
-  $("#runtimeStatus").textContent = "Python loaded locally";
-  return pyodide;
-}
-
-async function runCode() {
-  saveEditor();
-  const button = $("#runButton");
-  button.disabled = true;
-  button.textContent = "Running…";
-  const started = performance.now();
-  let stdout = "";
-  let stderr = "";
-  try {
-    const runtime = await getPython();
-    runtime.setStdout({batched: text => { stdout += `${text}\n`; }});
-    runtime.setStderr({batched: text => { stderr += `${text}\n`; }});
-    await runtime.runPythonAsync($("#editor").value);
-    showOutput(runResult({stdout, elapsedMs: performance.now() - started}));
-  } catch (error) {
-    showOutput(runResult({error: stderr || error.message || String(error), elapsedMs: performance.now() - started}));
-  } finally {
-    button.disabled = false;
-    button.textContent = "▶ Run";
-  }
-}
-
-$("#editor").addEventListener("input", () => { $("#saveStatus").textContent = "Unsaved changes"; });
-$("#editor").addEventListener("keydown", event => {
-  if (event.key === "Tab") {
-    event.preventDefault();
-    const input = event.currentTarget;
-    const start = input.selectionStart;
-    input.setRangeText("  ", start, input.selectionEnd, "end");
-    input.dispatchEvent(new Event("input"));
-  }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-    event.preventDefault();
-    saveEditor();
-  }
+function showActive(){const f=workspace.files.find(f=>f.name===workspace.activeFile);$('#activeName').textContent=f.name;view.setState(editorStates.get(f.name)||makeState(f.content));updateCursor();renderFiles();}
+function showOutput(){frame=null;$('#output').textContent=transcript;$('#output').scrollTop=$('#output').scrollHeight;}
+function append(text){transcript=(transcript+text).slice(-1000000);if(!frame)frame=requestAnimationFrame(showOutput);}
+const runner=new PythonRunner({
+ onState:state=>{
+  $('#runButton').disabled=state!=='idle';$('#stopButton').disabled=state==='idle';
+  $('#runtimeStatus').textContent=state==='loading'?'Loading local Python…':state==='running'?'Python running locally':'Local Python · ready';
+  if(state==='idle'){$('#inputForm').hidden=true;inputRequest=null;}
+ },
+ onOutput:({text})=>append(text),
+ onInput:request=>{inputRequest=request;$('#inputForm').hidden=false;$('#inputPrompt').textContent=request.prompt||'Python input';$('#stdinValue').value='';$('#stdinValue').focus();}
 });
-$("#saveButton").addEventListener("click", saveEditor);
-$("#runButton").addEventListener("click", runCode);
-$("#newFileButton").addEventListener("click", () => {
-  const name = prompt("New Python filename", "untitled.py");
-  if (!name) return;
-  try { saveEditor(); workspace = createFile(workspace, name); persist(); render(); } catch (error) { alert(error.message); }
+async function runCode(){
+ if(runner.active)return;
+ saveEditor();transcript='';showOutput();$('#output').classList.remove('error');$('#runMeta').textContent='Starting…';
+ const lines=$('#inputLines').value;
+ try{
+  const result=await runner.run({files:workspace.files.map(f=>({...f})),filename:workspace.activeFile,stdin:lines?lines.replace(/\r\n?/g,'\n').split('\n'):[],interactiveInput:true,nativeInput:Capacitor.getPlatform()==='ios'});
+  if(result.error){if(transcript&&!transcript.endsWith('\n'))append('\n');append(result.error);$('#output').classList.add('error');}
+  if(!transcript&&result.status==='success')append('Program finished with no output.');
+  $('#runMeta').textContent=`${result.status==='stopped'?'Stopped':result.status==='error'?'Error':'Finished'} · ${Math.round(result.elapsedMs)} ms`;
+ }catch(error){append(error.message);$('#output').classList.add('error');$('#runMeta').textContent='Could not run';}
+}
+$('#runButton').addEventListener('click',runCode);$('#stopButton').addEventListener('click',()=>runner.stop());$('#saveButton').addEventListener('click',saveEditor);
+$('#clearOutput').addEventListener('click',()=>{transcript='';showOutput();$('#output').classList.remove('error');});
+$('#inputForm').addEventListener('submit',e=>{e.preventDefault();if(!inputRequest)return;try{runner.respondInput(inputRequest.id,$('#stdinValue').value);$('#inputForm').hidden=true;inputRequest=null;}catch(error){message(error.message);}});
+$('#eofButton').addEventListener('click',()=>{if(inputRequest)runner.respondInput(inputRequest.id,null);inputRequest=null;$('#inputForm').hidden=true;});
+function nameDialog(action){dialogAction=action;$('#nameTitle').textContent=action==='new'?'New Python file':'Rename Python file';$('#nameValue').value=action==='new'?'untitled.py':workspace.activeFile;$('#nameError').textContent='';$('#nameDialog').showModal();$('#nameValue').select();}
+$('#newFileButton').addEventListener('click',()=>nameDialog('new'));$('#renameButton').addEventListener('click',()=>nameDialog('rename'));$('#nameCancel').addEventListener('click',()=>$('#nameDialog').close());
+$('#nameForm').addEventListener('submit',e=>{
+ e.preventDefault();try{
+  saveEditor();editorStates.set(workspace.activeFile,view.state);
+  const old=workspace.activeFile;
+  workspace=dialogAction==='new'?createFile(workspace,$('#nameValue').value):renameFile(workspace,old,$('#nameValue').value);
+  if(dialogAction==='rename'&&editorStates.has(old)){editorStates.set(workspace.activeFile,editorStates.get(old));if(old!==workspace.activeFile)editorStates.delete(old);}
+  persist();showActive();$('#nameDialog').close();view.focus();
+ }catch(error){$('#nameError').textContent=error.message;}
 });
-$("#renameButton").addEventListener("click", () => {
-  const name = prompt("Rename this file", workspace.activeFile);
-  if (!name || name === workspace.activeFile) return;
-  try { saveEditor(); workspace = renameFile(workspace, workspace.activeFile, name); persist(); render(); } catch (error) { alert(error.message); }
+$('#openButton').addEventListener('click',()=>$('#filePicker').click());
+$('#filePicker').addEventListener('change',async e=>{
+ for(const file of e.target.files){
+  try{
+   if(!file.name.toLowerCase().endsWith('.py'))throw new Error('Open a Python .py file.');
+   if(file.size>2000000)throw new Error('That file is too large (maximum 2 MB).');
+   const content=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer()).replace(/^\uFEFF/,'');
+   saveEditor();editorStates.set(workspace.activeFile,view.state);
+   const exists=workspace.files.some(f=>f.name===file.name);
+   if(exists&&!window.confirm(`Replace ${file.name} in this workspace?`))continue;
+   workspace=importFile(workspace,file.name,content,{overwrite:exists});editorStates.delete(workspace.activeFile);persist();showActive();
+  }catch(error){message(error.message);}
+ }
+ e.target.value='';
 });
-$("#clearOutput").addEventListener("click", () => showOutput({kind: "success", text: "Output cleared.", meta: "Ready"}));
-
-render();
+$('#exportButton').addEventListener('click',async()=>{
+ saveEditor();const f=workspace.files.find(f=>f.name===workspace.activeFile);
+ try{
+  if(Capacitor.isNativePlatform()){
+   const saved=await Filesystem.writeFile({path:f.name,data:f.content,directory:Directory.Cache,encoding:Encoding.UTF8});
+   await Share.share({title:f.name,url:saved.uri,dialogTitle:'Save Python file'});
+  }else{
+   const url=URL.createObjectURL(new Blob([f.content],{type:'text/x-python;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+ }catch(error){message(`Could not export: ${error.message}`);}
+});
+$('#findButton').addEventListener('click',()=>openSearchPanel(view));
+for(const [id,command] of [['indentButton',indentMore],['outdentButton',indentLess],['undoButton',undo],['redoButton',redo]]){$('#'+id).addEventListener('click',()=>{command(view);view.focus();});}
+let fontSize=16;
+function zoom(delta){fontSize=Math.max(12,Math.min(28,fontSize+delta));document.documentElement.style.setProperty('--editor-size',fontSize+'px');}
+$('#zoomIn').addEventListener('click',()=>zoom(1));$('#zoomOut').addEventListener('click',()=>zoom(-1));
+window.addEventListener('pagehide',()=>{saveEditor();runner.stop();});
+if(window.visualViewport){const adjust=()=>{document.querySelector('.app-shell').style.height=window.visualViewport.height+'px';};window.visualViewport.addEventListener('resize',adjust);adjust();}
+$('#activeName').textContent=workspace.activeFile;renderFiles();updateCursor();
+if(window.__MUPAD_SELFTEST__)import('./native-selftest.js');

@@ -1,13 +1,11 @@
-name: Build unsigned MuPad IPA
-
+name: Build and test unsigned MuPad IPA
 on:
   workflow_dispatch:
   push:
     branches: [main]
-
 jobs:
   build-ios:
-    runs-on: macos-14
+    runs-on: macos-15
     permissions:
       contents: read
     steps:
@@ -16,30 +14,42 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install and bundle local Python runtime
+      - name: Select supported Xcode 26 or newer
+        run: |
+          sudo xcode-select -s "$(python3 scripts/select-xcode.py)"
+          xcodebuild -version
+      - name: Install, test and bundle local Python and editor
         run: |
           npm ci
           npm run bundle
+          npm run check
+          npx playwright install chromium
+          npx playwright test --project=chromium
           npx cap add ios
           npx cap sync ios
-      - name: Build an unsigned iPhone/iPad app
+          node scripts/prepare-native.mjs
+      - name: Build and exercise actual WKWebView app in iPad simulator
         run: |
-          xcodebuild \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
-      - name: Package IPA for FlekSt0re signing
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath sim-build CODE_SIGNING_ALLOWED=NO build > simulator-build.log 2>&1 || { tail -100 simulator-build.log; exit 1; }
+          python3 scripts/test-ios-simulator.py
+      - name: Build unsigned iPad and iPhone app
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build > device-build.log 2>&1 || { tail -100 device-build.log; exit 1; }
+      - name: Package IPA for sideload signing
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/App.app Payload/App.app
-          ditto -c -k --sequesterRsrc --keepParent Payload MuPad-unsigned.ipa
+          ditto -c -k --sequesterRsrc --keepParent Payload MuPad-0.2-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MuPad-build-evidence
+          path: |
+            simulator-build.log
+            device-build.log
+            native-test-result.json
       - uses: actions/upload-artifact@v4
         with:
-          name: MuPad-unsigned-ipa
-          path: MuPad-unsigned.ipa
+          name: MuPad-0.2-unsigned-ipa
+          path: MuPad-0.2-unsigned.ipa
           if-no-files-found: error

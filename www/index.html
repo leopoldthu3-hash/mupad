@@ -1,36 +1,25 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
-  <title>MuPad — Python editor</title>
-  <link rel="stylesheet" href="app.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111827">
+<title>MuPad — Python 3 editor</title><link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <main class="app-shell">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark">μ</span><span>MuPad</span><small>LOCAL PYTHON</small></div>
-      <div class="status" id="runtimeStatus" aria-live="polite">Python ready when you are</div>
-      <button class="run" id="runButton" type="button">▶ Run</button>
-    </header>
-    <section class="workspace">
-      <aside class="files" aria-label="Python files">
-        <div class="files-title"><span>FILES</span><button id="newFileButton" type="button" aria-label="New Python file">＋</button></div>
-        <nav id="fileList"></nav>
-        <div class="file-actions"><button id="renameButton" type="button">Rename</button><button id="saveButton" type="button">Save</button></div>
-      </aside>
-      <section class="editor-pane">
-        <div class="tabbar"><span id="activeName">main.py</span><span class="saved" id="saveStatus">Saved locally</span></div>
-        <label class="sr-only" for="editor">Python code</label>
-        <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
-      </section>
-    </section>
-    <section class="console" aria-label="Program output">
-      <div class="console-title"><span>OUTPUT</span><span id="runMeta">Ready</span><button id="clearOutput" type="button">Clear</button></div>
-      <pre id="output">Press Run to execute Python locally on this iPad.</pre>
-    </section>
-  </main>
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+<main class="app-shell">
+<header class="topbar"><div class="brand">MuPad <small>PYTHON 3</small></div><span id="runtimeStatus" role="status">Local Python · ready</span>
+<button id="runButton" class="run" type="button">▶ Run</button><button id="stopButton" type="button" disabled>■ Stop</button></header>
+<nav class="toolbar" aria-label="Editor actions">
+<button id="newFileButton" type="button">New</button><button id="openButton" type="button">Open .py</button><button id="saveButton" type="button">Save</button><button id="exportButton" type="button">Export .py</button><button id="renameButton" type="button">Rename</button><button id="findButton" type="button">Find</button><button id="zoomOut" type="button" aria-label="Smaller text">A−</button><button id="zoomIn" type="button" aria-label="Larger text">A＋</button>
+<input id="filePicker" type="file" accept=".py,text/x-python,text/plain" multiple hidden>
+</nav>
+<section class="workspace"><aside class="files" aria-label="Python files"><h2>FILES</h2><nav id="fileList" aria-label="Workspace files"></nav></aside>
+<section class="editor-pane"><div class="tabbar"><span id="activeName">main.py</span><span id="saveStatus" role="status">Saved in app</span></div><div id="editorHost"></div>
+<div class="edit-tools" aria-label="Touch keyboard helpers"><button id="indentButton" type="button">Indent</button><button id="outdentButton" type="button">Outdent</button><button id="undoButton" type="button">Undo</button><button id="redoButton" type="button">Redo</button><span id="cursorStatus">Ln 1, Col 1</span></div></section></section>
+<section class="console" aria-label="Program output"><header class="console-title"><strong>CONSOLE</strong><span id="runMeta">Ready</span><button id="clearOutput" type="button">Clear</button></header><pre id="output" tabindex="0">Write Python, then press Run. Your code runs locally.</pre>
+<form id="inputForm" hidden><label id="inputPrompt" for="stdinValue">Python input</label><input id="stdinValue" type="text" autocomplete="off" autocapitalize="off"><button type="submit">Send</button><button id="eofButton" type="button">EOF</button></form>
+<details class="program-input"><summary>Program input (optional)</summary><p>One line per input() call. Otherwise reply when Python asks. No code changes needed.</p><textarea id="inputLines" aria-label="Program input lines" rows="2" spellcheck="false"></textarea></details>
+</section>
+<div id="message" role="alert" hidden></div>
+<dialog id="nameDialog"><form id="nameForm"><h2 id="nameTitle">New Python file</h2><label for="nameValue">Filename</label><input id="nameValue" type="text" autocomplete="off" autocapitalize="off" required><p id="nameError" role="alert"></p><div><button id="nameCancel" type="button">Cancel</button><button type="submit">Apply</button></div></form></dialog>
+</main><script type="module" src="app.bundle.js"></script>
+</body></html>

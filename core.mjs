@@ -22,6 +22,18 @@ export function createWorkspace() {
   return {activeFile: "main.py", files: [{name: "main.py", content: STARTER}]};
 }
 
+export function restoreWorkspace(saved) {
+  if (!saved || !Array.isArray(saved.files)) return createWorkspace();
+  const seen = new Set();
+  const files = saved.files.filter(file => {
+    if (!file || typeof file.name !== "string" || !validName(file.name) || typeof file.content !== "string" || seen.has(file.name)) return false;
+    seen.add(file.name);
+    return true;
+  }).map(({name, content}) => ({name, content}));
+  if (!files.length) return createWorkspace();
+  return {files, activeFile: files.some(file => file.name === saved.activeFile) ? saved.activeFile : files[0].name};
+}
+
 export function createFile(workspace, inputName) {
   const next = clone(workspace);
   const name = normalizedName(inputName);
@@ -44,6 +56,16 @@ export function renameFile(workspace, oldName, inputName) {
   if (oldName !== newName && next.files.some(file => file.name === newName)) throw new Error("That filename already exists");
   next.files[index].name = newName;
   if (next.activeFile === oldName) next.activeFile = newName;
+  return next;
+}
+
+export function importFile(workspace, inputName, content, {overwrite = false} = {}) {
+  const name = normalizedName(inputName);
+  if (typeof content !== "string") throw new Error("Python file content must be text");
+  const exists = workspace.files.some(file => file.name === name);
+  if (exists && !overwrite) throw new Error("That filename already exists");
+  const next = exists ? saveFile(workspace, name, content) : saveFile(createFile(workspace, name), name, content);
+  next.activeFile = name;
   return next;
 }
 
