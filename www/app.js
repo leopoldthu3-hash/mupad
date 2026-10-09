@@ -105,7 +105,7 @@ $('#nameForm').addEventListener('submit',e=>{
   const old=workspace.activeFile;
   workspace=dialogAction==='new'?createFile(workspace,$('#nameValue').value):renameFile(workspace,old,$('#nameValue').value);
   if(dialogAction==='rename'&&editorStates.has(old)){editorStates.set(workspace.activeFile,editorStates.get(old));if(old!==workspace.activeFile)editorStates.delete(old);}
-  persist();showActive();$('#nameDialog').close();view.focus();
+  persist();if(dialogAction==='rename')learning?.renameFile(old,workspace.activeFile);showActive();$('#nameDialog').close();view.focus();
  }catch(error){$('#nameError').textContent=error.message;}
 });
 $('#openButton').addEventListener('click',()=>$('#filePicker').click());

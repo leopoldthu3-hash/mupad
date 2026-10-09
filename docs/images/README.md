@@ -6,7 +6,10 @@ The logo and banner in this directory are original MuPad artwork and are availab
 - `mupad-logo.png`: 1024 × 1024 raster logo.
 - `mupad-banner.svg`: editable repository banner.
 - `mupad-banner.png`: 1280 × 640 banner, also sized for a GitHub social-preview image.
-- `editor-ipad.png`: an actual browser/WebKit screenshot at an iPad-sized viewport, not the banner illustration.
+- `editor-ipad.png`: an actual 0.2 browser/WebKit screenshot at an iPad-sized viewport, not the banner illustration.
+- `learning-editor.png`: actual 0.3 production learning editor after a real Python check passed.
+- `learning-courses.png`: actual 0.3 production course dialog, captured in Chromium.
+- `mupad-app-icon.png`: opaque RGB 1024 × 1024 icon applied reproducibly to the native iPad project.
 
 The mint M represents MuPad, and the small triangle is its Run button. Neither the logo nor the banner uses Mu Editor or Python trademark graphics.
 

@@ -114,6 +114,42 @@ test('checks reject plausible answers with conceptual or edge-case mistakes', as
   }
 });
 
+test('insertion-sort checks reject ordinary built-in sorting shortcuts', async (t) => {
+  const { findLesson } = await import(catalogURL);
+  const { task } = findLesson('insertion-sort');
+  // These mutants cover ordinary prohibited shortcuts, not every algorithm or
+  // deliberate attempts to bypass the grader.
+  const shortcuts = [
+    ['sorted()', 'def insertion_sort(values):\n    return sorted(values)'],
+    ['copy + list.sort()', 'def insertion_sort(values):\n    result = list(values)\n    result.sort()\n    return result'],
+  ];
+  for (const [label, program] of shortcuts) {
+    await t.test(label, () => {
+      const result = runPython(program, task.checks, task.stdin);
+      assert.notEqual(result.status, 0, `${label}: prohibited shortcut was accepted`);
+      assert.match(result.stderr, /Use insertion sort, not sorted\(\) or list\.sort\(\)\./);
+    });
+  }
+});
+
+test('insertion-sort reference retains stable ordering and the copy/edge-case contract', async () => {
+  const { findLesson } = await import(catalogURL);
+  const { task } = findLesson('insertion-sort');
+  const stabilityChecks = String.raw`
+class _TaggedNumber(float):
+    pass
+_first, _second = _TaggedNumber(2), _TaggedNumber(2)
+_small = _TaggedNumber(1)
+_original = [_first, _small, _second]
+_result = insertion_sort(_original)
+assert _result is not _original
+assert all(actual is expected for actual, expected in zip(_result, [_small, _first, _second]))
+assert all(actual is expected for actual, expected in zip(_original, [_first, _small, _second]))
+`;
+  requirePass(runPython(task.solution, `${task.checks}\n${stabilityChecks}`, task.stdin),
+    'insertion-sort: reference solution, stability, unchanged input, copy and edge cases');
+});
+
 test('findLesson returns the original lesson by exact id, or undefined when absent', async () => {
   const { courses, findLesson } = await import(catalogURL);
   assert.equal(typeof findLesson, 'function');

@@ -2,8 +2,9 @@
 // A fresh marker is written only AFTER every assertion passes, never in finally.
 export function gradingProgram(code,filename,checks,marker){
  const source=JSON.stringify(code),name=JSON.stringify('/workspace/'+filename),tests=JSON.stringify(Array.isArray(checks)?checks.join('\n'):checks);
- return `import sys as _sys, io as _io
+ return `import sys as _sys, io as _io, types as _types
 _original = _sys.stdout
+_original_main = _sys.modules['__main__']
 _capture = _io.StringIO()
 class _Tee:
     def write(self, text):
@@ -13,16 +14,23 @@ class _Tee:
         _original.flush()
     def __getattr__(self, name):
         return getattr(_original, name)
-_namespace = {"__name__": "__main__", "__file__": ${name}, "__package__": None}
-_sys.stdout = _Tee()
+_student_main = _types.ModuleType('__main__')
+_student_main.__file__ = ${name}
+_student_main.__package__ = None
+_namespace = _student_main.__dict__
 try:
-    exec(compile(${source}, ${name}, 'exec'), _namespace)
+    _sys.modules['__main__'] = _student_main
+    _sys.stdout = _Tee()
+    try:
+        exec(compile(${source}, ${name}, 'exec'), _namespace)
+    finally:
+        _sys.stdout = _original
+    _namespace["__mupad_output"] = _capture.getvalue()
+    exec(compile(${tests}, '<exercise checks>', 'exec'), _namespace)
+    _original.write(${JSON.stringify(marker)})
+    _original.flush()
 finally:
-    _sys.stdout = _original
-_namespace["__mupad_output"] = _capture.getvalue()
-exec(compile(${tests}, '<exercise checks>', 'exec'), _namespace)
-_original.write(${JSON.stringify(marker)})
-_original.flush()
+    _sys.modules['__main__'] = _original_main
 `;
 }
 export function showErrorHelp(error=''){
@@ -79,7 +87,9 @@ export async function createLearningUI({getWorkspace,loadExercise,onCheck,messag
  $('#checkSolution').addEventListener('click',()=>{const selected=current();if(selected&&getWorkspace().activeFile===selected.filename)onCheck(selected);});
  if(state.selected&&!getWorkspace().files.some(f=>f.name===state.selected.filename)){state.selected=null;persist();}
  sync();
- return {sync,current,state,persist,setBusy:value=>{busy=value;sync();},feedback:text=>{$('#exerciseFeedback').textContent=text;},complete:selected=>{
+ return {sync,current,state,persist,renameFile:(oldName,newName)=>{
+  if(state.selected?.filename===oldName&&oldName!==newName){state.selected={...state.selected,filename:newName};persist();}
+ },setBusy:value=>{busy=value;sync();},feedback:text=>{$('#exerciseFeedback').textContent=text;},complete:selected=>{
   if(!state.completed.includes(selected.lessonId))state.completed.push(selected.lessonId);persist();
  }};
 }
