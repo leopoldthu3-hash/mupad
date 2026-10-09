@@ -1,102 +1,95 @@
-![MuPad: Python for your iPad](docs/images/mupad-banner.png)
+![MuPad: learn Python, step by step](docs/images/mupad-banner.png)
 
 # MuPad
 
-A small Python editor for iPad. Open a `.py` file, write some code, and run it right on your device. Your code doesn't get sent to a server.
+**Learn Python, one small project at a time.** MuPad is a friendly Python editor and learning app for iPad, Windows and Linux. Start with your first `print()`, work through guided exercises, and keep using the same editor as your projects grow.
 
-MuPad takes inspiration from the simple feel of [Mu Editor](https://codewith.mu/), but it's a separate project with its own interface and code. It runs real Python through [Pyodide](https://pyodide.org/), so you can use normal Python syntax, including `input()`. You don't need to learn a new language or rewrite your scripts around a special API.
-
-![MuPad editor with Python code and program output](docs/images/editor-ipad.png)
-
-*The editor running in WebKit at an iPad-sized viewport.*
+The interpreter ships with the app. You don't need to set up Python, create an account, or send your code to a server. It runs real CPython 3.14.2 through [Pyodide](https://pyodide.org/), including normal synchronous `input()`.
 
 ## Download
 
-[**Download the latest IPA from Releases**](https://github.com/leopoldthu3-hash/mupad/releases/latest)
+[**Get the latest version from Releases**](https://github.com/leopoldthu3-hash/mupad/releases/latest)
 
-Choose the `.ipa` under **Assets**. The download is unsigned and needs a valid signature through your chosen sideloading setup before it can be installed. It isn't an App Store or TestFlight build. Release downloads don't require a GitHub account.
+Under **Assets**, choose the download for your device:
 
-Each release includes a SHA-256 checksum and identifies the source commit used to build it. Export important scripts before replacing an existing installation.
+- **Windows 10/11, x64:** the `.exe` installer.
+- **Linux, x64:** `.deb` for Debian/Ubuntu, or `.AppImage` for other compatible distributions. An AppImage must be made executable before opening; it may need your distribution's FUSE compatibility package.
+- **iPad (iPadOS 17+):** the `.ipa`. It is **unsigned**, so it must be signed through your own sideloading setup. This is not an App Store or TestFlight download.
 
-## What you can do
+Desktop packages are not developer-signed either. Check the release URL and the supplied **SHA256SUMS.txt** before installing; Windows may show an unknown-publisher/SmartScreen warning. Do not turn off your computer's security protections to run the app. Downloads don't require a GitHub account.
 
-- Create and rename Python files, with drafts saved automatically in the app.
-- Open `.py` files and export them through the iPad share sheet.
-- Edit with syntax highlighting, line numbers, four-space indentation, search, and undo/redo.
-- Run Python locally, see output as it happens, and get tracebacks that point to your file.
-- Use normal `input()` with a native input prompt.
-- Import another `.py` file from your workspace.
-- Stop an infinite loop without freezing the editor, then run another program.
+Export important scripts before replacing or removing an installation. Each release records the exact source commit used for its builds.
 
-The interpreter and standard library ship with the app. Once installed, running ordinary scripts doesn't need an internet connection.
+## Built for learning
+
+- **Start guide:** learn the editor, files, Run/Stop, output, `input()`, and how to save a script outside the app.
+- **Six courses, 36 practical lessons:** start with printing, values and input; move through decisions, loops, collections, functions, files and more challenging projects.
+- **Explanation + working example + your own exercise** in every lesson.
+- **Hints and optional solutions:** try first, then reveal help when you need it.
+- **Check your work:** checks execute real Python and test the answer. Opening a lesson or clicking a button doesn't mark it complete.
+- **Local progress:** completed exercises stay on your device. There is no learning account or cloud tracking.
+- **Friendlier error help:** common Python exceptions keep their original traceback and get a short explanation of what to check.
+- **Full-screen console:** expand the output area for bigger programs, keep Run/Stop and input available, and return to the editor without losing your code or output.
+
+Open **Learn Python**, choose a lesson, and load its exercise. MuPad creates a separate exercise file instead of overwriting your current script. Edit it, experiment with **Run**, and use **Check exercise** when you're ready. Courses and solutions are in English; Python syntax is ordinary Python.
+
+## Still a useful editor
+
+Create, rename, import and export `.py` files. Drafts save automatically. The editor includes syntax highlighting, line numbers, four-space indentation, search, and undo/redo. Run scripts locally, import another workspace file, watch output live, or stop an infinite loop without locking up the interface.
+
+![MuPad editor with Python code and program output](docs/images/editor-ipad.png)
+
+*Editor screenshot from the earlier 0.2 release, running in iPad-sized WebKit. The 0.3 learning interface adds controls around the same editor.*
 
 ## A few limits
 
-MuPad is still a small project, not a replacement for every desktop Python setup. It uses CPython 3.14.2 through WebAssembly. Desktop GUI libraries such as `tkinter`, graphical `turtle`, pygame, hardware-specific modules, and arbitrary native packages aren't supported. There isn't a full REPL, debugger, or plotter yet.
+MuPad is a learning app, not every desktop Python environment. Its WebAssembly interpreter doesn't support desktop GUI libraries such as `tkinter`, graphical `turtle`, pygame, hardware-specific modules, or arbitrary native packages. There is not a full REPL, debugger, or plotter yet.
 
-Each run starts a fresh interpreter. Your editor files persist, but files created by a running script are currently temporary and don't survive the next run.
+Each run starts a fresh interpreter. Editor files persist, but files created by a running script are currently temporary. Saving a draft is not the same as exporting it: export anything important before deleting or reinstalling the app. Progress stays local to each installation; it is not synced between devices.
 
-Saving a draft in MuPad isn't the same as exporting it to the Files app. Export anything important before deleting or reinstalling the app.
+## Develop and test
 
-## Run it locally
-
-You'll need Node.js 22 or newer and Python 3 for the development server.
+You'll need Node.js 22+ and Python 3. Native iOS builds additionally require macOS and Xcode 26+.
 
 ```sh
 git clone https://github.com/leopoldthu3-hash/mupad.git
 cd mupad
 npm ci
 npm run bundle
-python3 scripts/test-server.py
-```
-
-Open **http://127.0.0.1:4192**. The server supplies the isolation headers needed for interactive browser input. Keep it bound to localhost; it isn't intended as a public hosting service.
-
-## Tests
-
-```sh
 npm run check
 npx playwright install --with-deps chromium webkit
 npm run test:e2e
 ```
 
-The tests execute the actual bundled Python interpreter. Browser checks cover drafts, file import/export, indentation, output, input, and stopping a runaway program. They include iPad portrait and landscape viewports.
+For a browser development session, run `python3 scripts/test-server.py` and open **http://127.0.0.1:4192**. Keep the server on localhost; its isolation headers enable interactive input.
 
-The iOS build also installs the native app in an iPad simulator and checks worker/WASM loading, workspace imports, normal `input()` through the native prompt, and Stop/restart. Browser success alone doesn't count as proof that the packaged app works. The 0.2 build passed that native gate and was also reported working on an iPad by its owner.
-
-## Build an IPA
-
-You need macOS with Xcode 26 or newer to compile the iOS app. Linux can run the editor and tests, but it can't compile the device binary.
+For the desktop app:
 
 ```sh
-npm ci
-npm run bundle
+npm run desktop
+npm run build:windows  # use a Windows build machine
+npm run build:linux    # use a Linux build machine
+```
+
+The desktop wrapper uses Electron with sandboxing, context isolation, and no renderer Node access. A bundled custom origin serves the editor/interpreter, and remote app requests/navigation are blocked. Python still runs in a separate worker; it does not get direct access to your operating system.
+
+For iPad:
+
+```sh
 npx cap add ios
 npx cap sync ios
 node scripts/prepare-native.mjs
 npx cap open ios
 ```
 
-`prepare-native.mjs` applies the native input bridge and packaging changes after Capacitor generates the project. The generated `ios/` directory isn't committed; the Swift sources that get applied are in `native/`.
+The reproducible native preparation applies the local input bridge, app icon, and version metadata. The generated `ios/` directory is not committed; its custom Swift sources are in `native/`. On iPad, ordinary `input()` uses a native prompt through a loopback-only HTTP bridge with a random per-launch path. No Python code is sent away for execution.
 
-You can also fork this repository and run the **Build and test unsigned MuPad IPA** workflow from the Actions tab. It runs the tests, builds and exercises the simulator app, and only then packages an unsigned ARM64 device IPA. The minimum deployment target is iOS/iPadOS 17. The current app has been used on an iPad running iPadOS 26.
+The GitHub Actions workflows build on native Windows, Linux and macOS hosts. Release gates exercise packaged desktop Python/input/Stop/restart/storage and the native iPad simulator. Browser checks cover portrait/landscape layouts and the learning interface, and a separate test executes all course solutions using the bundled Python interpreter. A successful compile alone is not a passing app test.
 
-An unsigned IPA still needs a valid signature through your chosen sideloading setup. This repository doesn't include Apple certificates, provisioning profiles, or account credentials.
+## Contributing and license
 
-## How it works
+Pull requests are welcome: better explanations, tested exercises, accessibility improvements, and small editor fixes are good places to start. See [CONTRIBUTING.md](CONTRIBUTING.md). Please don't commit credentials, signing material, personal scripts, or generated build artifacts.
 
-CodeMirror handles the editor. A dedicated worker runs Pyodide so Python can't lock up the interface. Stop terminates that worker, and the next run gets a clean interpreter and workspace copy.
+Original MuPad code and artwork use the [MIT license](LICENSE). Dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Browser input uses shared memory. On iPad, a small native HTTP bridge listens **only on 127.0.0.1**, behind a random per-launch path, and opens a native prompt. It doesn't send code or input to an external service. Native self-test checkpoints use a separate WebKit message channel so an interpreter failure can't hide the diagnostic report.
-
-## Contributing
-
-Pull requests are welcome. Bug fixes, better file handling, and iPad usability improvements are good places to start. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and test expectations.
-
-Please don't commit passwords, tokens, signing material, personal scripts, or generated build artifacts.
-
-## License
-
-MuPad's original code is available under the [MIT license](LICENSE). You can use it, modify it, and share your own version, subject to that license.
-
-The libraries it uses keep their own licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). MuPad is not affiliated with the Mu Editor project.
+MuPad takes inspiration from [Mu Editor](https://codewith.mu/), but has its own code, interface, and branding. It is not affiliated with the Mu Editor project.

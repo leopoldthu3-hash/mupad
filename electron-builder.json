@@ -1,0 +1,85 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.mupad.desktop",
+  "productName": "MuPad",
+  "executableName": "mupad",
+  "asar": true,
+  "directories": {
+    "output": "dist/desktop"
+  },
+  "extraMetadata": {
+    "main": "desktop/main.mjs",
+    "description": "Learn Python step by step with offline courses, exercises and a friendly editor"
+  },
+  "files": [
+    "desktop/**/*.mjs",
+    "www/**/*",
+    "docs/images/mupad-logo.png",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses/**/*",
+    "package.json",
+    "!node_modules/**/*"
+  ],
+  "artifactName": "MuPad-${version}-${os}-${arch}.${ext}",
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "docs/images/mupad-logo.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "MuPad"
+  },
+  "linux": {
+    "target": [
+      {
+        "target": "deb",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "docs/images/mupad-logo.png",
+    "category": "Education",
+    "maintainer": "MuPad contributors <leopoldthu3-hash@users.noreply.github.com>",
+    "synopsis": "Learn Python with offline courses and coding exercises",
+    "desktop": {
+      "entry": {
+        "StartupWMClass": "MuPad",
+        "Keywords": "Python;Programming;Education;"
+      }
+    }
+  },
+  "deb": {
+    "depends": [
+      "libgtk-3-0",
+      "libnotify4",
+      "libnss3",
+      "libxss1",
+      "libxtst6",
+      "xdg-utils",
+      "libatspi2.0-0",
+      "libdrm2",
+      "libgbm1",
+      "libasound2"
+    ]
+  },
+  "publish": null
+}

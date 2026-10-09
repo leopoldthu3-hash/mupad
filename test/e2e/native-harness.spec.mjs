@@ -5,6 +5,7 @@ test('native self-test reports real interpreter phases independently of custom-s
  await page.goto('/');
  await expect.poll(()=>page.evaluate(()=>window.__nativeReports.some(r=>r.status==='passed')),{timeout:30000}).toBe(true);
  const final=await page.evaluate(()=>window.__nativeReports.find(r=>r.status==='passed'));
- expect(final.results).toHaveLength(3);
+ expect(final.results).toHaveLength(4);
+ expect(final.results).toEqual(expect.arrayContaining([expect.objectContaining({name:'bundled learning courses and real Python exercise grading reject empty answers',status:'passed'})]));
  await expect.poll(()=>page.evaluate(()=>window.__nativeReports.some(r=>r.phase==='app-initialized'))).toBe(true);
 });

@@ -1,4 +1,4 @@
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
 const root='node_modules/@capacitor/ios/Capacitor/Capacitor/';
 const path=root+'WebViewAssetHandler.swift';
 let source=await readFile(path,'utf8');
@@ -12,6 +12,7 @@ if(!source.includes('muPadHandleRequest')){
  await writeFile(path,source);
 }
 const app='ios/App/App/';
+await copyFile('docs/images/mupad-app-icon.png',app+'Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png');
 let delegate=await readFile(app+'AppDelegate.swift','utf8');
 delegate=delegate.split('\nimport Network')[0].split('\nclass MuPadViewController:')[0];
 if(!delegate.includes('import WebKit'))delegate=delegate.replace('import Capacitor','import Capacitor\nimport WebKit');
@@ -33,5 +34,6 @@ if(!info.includes('NSAllowsLocalNetworking'))info=info.replace('<key>LSRequiresI
 await writeFile(infoPath,info);
 const project='ios/App/App.xcodeproj/project.pbxproj';
 let pbx=await readFile(project,'utf8');
-await writeFile(project,pbx.replaceAll('IPHONEOS_DEPLOYMENT_TARGET = 15.0;','IPHONEOS_DEPLOYMENT_TARGET = 17.0;').replaceAll('MARKETING_VERSION = 1.0;','MARKETING_VERSION = 0.2.0;').replaceAll('CURRENT_PROJECT_VERSION = 1;','CURRENT_PROJECT_VERSION = 2;'));
+const version=JSON.parse(await readFile('package.json','utf8')).version;
+await writeFile(project,pbx.replaceAll('IPHONEOS_DEPLOYMENT_TARGET = 15.0;','IPHONEOS_DEPLOYMENT_TARGET = 17.0;').replace(/MARKETING_VERSION = [^;]+;/g,`MARKETING_VERSION = ${version};`).replace(/CURRENT_PROJECT_VERSION = [^;]+;/g,'CURRENT_PROJECT_VERSION = 3;'));
 console.log('Prepared reproducible native stdin bridge, module MIME fix, and iOS 17 minimum.');

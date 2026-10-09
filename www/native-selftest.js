@@ -22,5 +22,15 @@ try{
   runner.stop();require((await execution).status==='stopped','Stop failed');
   const result=await runner.run({filename:'main.py',files:[{name:'main.py',content:'print("restarted")'}]});require(result.stdout==='restarted\n',result.error);
  });
+ await check('bundled learning courses and real Python exercise grading reject empty answers',async()=>{
+  const {courses}=await import('./learning-catalog.mjs');
+  const {gradingProgram}=await import('./learning-ui.mjs');
+  const lessons=courses.flatMap(course=>course.lessons);
+  require(courses.length>=6 && lessons.length>=36,'Learning catalog was not bundled');
+  const lesson=lessons[0],marker='NATIVE_LEARNING_CHECK_PASSED';
+  const grade=async code=>runner.run({filename:'lesson.py',files:[{name:'lesson.py',content:gradingProgram(code,'lesson.py',lesson.task.checks,marker)}],stdin:lesson.task.stdin||[]});
+  const empty=await grade('');require(!empty.stdout.includes(marker),'Empty answer was marked complete');
+  const solved=await grade(lesson.task.solution);require(solved.status==='success'&&solved.stdout.includes(marker),solved.error||solved.stdout);
+ });
  report({status:'passed',results});
 }catch(error){report({status:'failed',results,error:String(error.message||error)+'\n'+String(error.stack||'')});}

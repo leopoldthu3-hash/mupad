@@ -1,0 +1,114 @@
+name: Build desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'desktop/**'
+      - 'www/**'
+      - 'core.mjs'
+      - 'scripts/bundle.mjs'
+      - 'package*.json'
+      - 'electron-builder.json'
+      - 'docs/images/mupad-logo.png'
+      - 'test/**'
+      - '.github/workflows/build-desktop.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'www/**'
+      - 'core.mjs'
+      - 'scripts/bundle.mjs'
+      - 'package*.json'
+      - 'electron-builder.json'
+      - 'test/**'
+      - '.github/workflows/build-desktop.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHON: python
+      PYTHONUTF8: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run bundle
+      - run: npm run check
+      - name: Sandboxed Electron runtime selftest
+        run: node desktop/selftest.mjs --report dist/desktop/selftest-development-windows.json
+      - name: Build Windows x64 NSIS installer
+        run: npx electron-builder --config electron-builder.json --win --x64 --publish never
+      - name: Test the actual packaged Windows application
+        run: node desktop/selftest.mjs --executable dist/desktop/win-unpacked/mupad.exe --require-packaged --report dist/desktop/selftest-packaged-windows.json
+      - name: Install and exercise the Windows installer
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist/desktop/*.exe | Select-Object -First 1
+          $destination = Join-Path $env:RUNNER_TEMP "MuPadInstalled"
+          $process = Start-Process $installer.FullName -ArgumentList "/S", "/D=$destination" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          node desktop/selftest.mjs --executable "$destination/mupad.exe" --require-packaged --report dist/desktop/selftest-installed-windows.json
+          if ($LASTEXITCODE -ne 0) { throw "Installed Windows app failed its tests" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuPad-windows
+          if-no-files-found: error
+          path: |
+            dist/desktop/*.exe
+            dist/desktop/*.blockmap
+            dist/desktop/selftest-*.json
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install native desktop runtime/build dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libnotify4 libxss1 libxtst6 libatspi2.0-0 libfuse2t64 rpm
+      - run: npm ci
+      - run: npm run bundle
+      - run: npm run check
+      - name: Configure development Chromium setuid sandbox (do not disable it)
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+      - name: Sandboxed Electron runtime selftest
+        run: xvfb-run -a node desktop/selftest.mjs --report dist/desktop/selftest-development-linux.json
+      - name: Build Linux x64 deb and AppImage
+        run: npx electron-builder --config electron-builder.json --linux --x64 --publish never
+      - name: Configure packaged Chromium setuid sandbox for CI
+        run: |
+          sudo chown root:root dist/desktop/linux-unpacked/chrome-sandbox
+          sudo chmod 4755 dist/desktop/linux-unpacked/chrome-sandbox
+      - name: Test the actual packaged Linux application
+        run: xvfb-run -a node desktop/selftest.mjs --executable dist/desktop/linux-unpacked/mupad --require-packaged --report dist/desktop/selftest-packaged-linux.json
+      - name: Install and exercise the actual Debian package
+        run: |
+          sudo apt-get install -y ./dist/desktop/*.deb
+          xvfb-run -a node desktop/selftest.mjs --executable /opt/MuPad/mupad --require-packaged --report dist/desktop/selftest-installed-linux.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuPad-linux
+          if-no-files-found: error
+          path: |
+            dist/desktop/*.deb
+            dist/desktop/*.AppImage
+            dist/desktop/selftest-*.json

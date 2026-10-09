@@ -1,8 +1,8 @@
 {
   "name": "mupad",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "A simple Python editor for iPad. Write normal Python, run it locally, and keep your scripts on your device.",
+  "description": "A friendly Python learning app for iPad, Windows and Linux. Learn step by step, practise with coding exercises, and run real Python offline.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -13,7 +13,12 @@
     "bundle": "node scripts/bundle.mjs",
     "test": "node --test test/*.test.mjs",
     "check": "node --check core.mjs && node --check www/app.js && node --check www/python-worker.js && node --check www/python-runner.mjs && node --check scripts/bundle.mjs && node --check scripts/prepare-native.mjs && node --test test/*.test.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "desktop": "npm run bundle && electron .",
+    "test:desktop": "node desktop/selftest.mjs",
+    "build:desktop": "npm run bundle && electron-builder --config electron-builder.json --publish never",
+    "build:windows": "npm run build:desktop -- --win --x64",
+    "build:linux": "npm run build:desktop -- --linux --x64"
   },
   "dependencies": {
     "@capacitor/cli": "^8.5.3",
@@ -32,7 +37,11 @@
     "@codemirror/state": "6.7.6",
     "@codemirror/view": "6.43.14",
     "@playwright/test": "1.64.0",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
     "esbuild": "0.28.2",
     "typescript": "^7.0.2"
-  }
+  },
+  "main": "desktop/main.mjs",
+  "author": "MuPad contributors"
 }

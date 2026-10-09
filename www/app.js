@@ -10,6 +10,8 @@ import {Filesystem,Directory,Encoding} from '@capacitor/filesystem';
 import {Share} from '@capacitor/share';
 import {createWorkspace,restoreWorkspace,createFile,renameFile,saveFile,importFile} from './core.mjs';
 import {PythonRunner} from './python-runner.mjs';
+import {createLearningUI,gradingProgram,showErrorHelp} from './learning-ui.mjs';
+let learning=null,checkMarker=null;
 const $=selector=>document.querySelector(selector),STORAGE_KEY='mupad-workspace-v1';
 let workspace=loadWorkspace(),inputRequest=null,transcript='',frame=null,dialogAction='new',messageTimer;
 const editorStates=new Map();
@@ -37,30 +39,61 @@ function renderFiles(){
   b.addEventListener('click',()=>{if(file.name===workspace.activeFile)return;saveEditor();editorStates.set(workspace.activeFile,view.state);workspace.activeFile=file.name;persist();showActive();});return b;
  }));
 }
-function showActive(){const f=workspace.files.find(f=>f.name===workspace.activeFile);$('#activeName').textContent=f.name;view.setState(editorStates.get(f.name)||makeState(f.content));updateCursor();renderFiles();}
+function showActive(){const f=workspace.files.find(f=>f.name===workspace.activeFile);$('#activeName').textContent=f.name;view.setState(editorStates.get(f.name)||makeState(f.content));updateCursor();renderFiles();learning?.sync();}
 function showOutput(){frame=null;$('#output').textContent=transcript;$('#output').scrollTop=$('#output').scrollHeight;}
 function append(text){transcript=(transcript+text).slice(-1000000);if(!frame)frame=requestAnimationFrame(showOutput);}
 const runner=new PythonRunner({
  onState:state=>{
+  learning?.setBusy(state!=='idle');
   $('#runButton').disabled=state!=='idle';$('#stopButton').disabled=state==='idle';
   $('#runtimeStatus').textContent=state==='loading'?'Loading local Python…':state==='running'?'Python running locally':'Local Python · ready';
   if(state==='idle'){$('#inputForm').hidden=true;inputRequest=null;if(window.__MUPAD_STDIN_URL__)fetch(window.__MUPAD_STDIN_URL__+'?cancel=1').catch(()=>{});}
  },
- onOutput:({text})=>append(text),
+ onOutput:({text})=>append(checkMarker?text.replaceAll(checkMarker,''):text),
  onInput:request=>{inputRequest=request;$('#inputForm').hidden=false;$('#inputPrompt').textContent=request.prompt||'Python input';$('#stdinValue').value='';$('#stdinValue').focus();}
 });
-async function runCode(){
+async function runCode(selected=null){
  if(runner.active)return;
- saveEditor();transcript='';showOutput();$('#output').classList.remove('error');$('#runMeta').textContent='Starting…';
- const lines=$('#inputLines').value;
+ if(selected&&workspace.activeFile!==selected.filename)return;
+ saveEditor();transcript='';showOutput();showErrorHelp();$('#output').classList.remove('error');$('#runMeta').textContent='Starting…';
+ const lines=$('#inputLines').value,filename=workspace.activeFile,source=view.state.doc.toString();
+ const files=workspace.files.map(f=>({...f}));let runFilename=filename;
+ checkMarker=selected?`__MUPAD_PASS_${crypto.randomUUID()}__`:null;
+ if(selected){
+  learning.feedback('Checking your solution with Python…');
+  runFilename=`__mupad_check_${crypto.randomUUID().replaceAll('-','')}.py`;
+  files.push({name:runFilename,content:gradingProgram(source,filename,selected.lesson.task.checks,checkMarker)});
+ }
  try{
-  const result=await runner.run({files:workspace.files.map(f=>({...f})),filename:workspace.activeFile,stdin:lines?lines.replace(/\r\n?/g,'\n').split('\n'):[],interactiveInput:true,nativeInput:Capacitor.getPlatform()==='ios'?(window.__MUPAD_STDIN_URL__||true):false});
+  const result=await runner.run({files,filename:runFilename,stdin:selected?.lesson.task.stdin??(lines?lines.replace(/\r\n?/g,'\n').split('\n'):[]),interactiveInput:true,nativeInput:Capacitor.getPlatform()==='ios'?(window.__MUPAD_STDIN_URL__||true):false});
+  showErrorHelp(result.error||'');
   if(result.error){if(transcript&&!transcript.endsWith('\n'))append('\n');append(result.error);$('#output').classList.add('error');}
   if(!transcript&&result.status==='success')append('Program finished with no output.');
   $('#runMeta').textContent=`${result.status==='stopped'?'Stopped':result.status==='error'?'Error':'Finished'} · ${Math.round(result.elapsedMs)} ms`;
- }catch(error){append(error.message);$('#output').classList.add('error');$('#runMeta').textContent='Could not run';}
+  if(selected){
+   const unchanged=workspace.activeFile===filename&&view.state.doc.toString()===source&&learning.current()?.filename===filename&&learning.current()?.lessonId===selected.lessonId;
+   if(!unchanged)learning.feedback('The file or exercise changed while checking. Check the current exercise again; progress was not changed.');
+   else if(result.status==='success'&&result.stdout.endsWith(checkMarker)){learning.complete(selected);learning.feedback('Passed! Your solution met every check. Progress saved. Keep experimenting or choose another lesson.');}
+   else learning.feedback(result.status==='stopped'?'Check stopped. No progress was awarded. Try again when you are ready.':'Not passed yet. Read the console feedback, try a hint, and check again. Your code is safe.');
+  }
+ }catch(error){append(error.message);$('#output').classList.add('error');$('#runMeta').textContent='Could not run';if(selected)learning.feedback('Could not check this time. No progress was awarded. Try again.');}
+ finally{checkMarker=null;}
 }
-$('#runButton').addEventListener('click',runCode);$('#stopButton').addEventListener('click',()=>runner.stop());$('#saveButton').addEventListener('click',saveEditor);
+$('#runButton').addEventListener('click',()=>runCode());$('#stopButton').addEventListener('click',()=>runner.stop());$('#saveButton').addEventListener('click',saveEditor);
+$('#guideButton').addEventListener('click',()=>$('#guideDialog').showModal());
+$('#closeGuide').addEventListener('click',()=>$('#guideDialog').close());
+function focusConsole(expanded){
+ $('.app-shell').classList.toggle('console-focus',expanded);
+ $('#consoleExpand').setAttribute('aria-expanded',String(expanded));
+ $('#consoleExpand').setAttribute('aria-label',expanded?'Collapse console':'Expand console');
+ $('#consoleExpand').textContent=expanded?'Back to editor':'Full screen';
+ view.requestMeasure();
+ (expanded?$('#output'):$('#consoleExpand')).focus({preventScroll:true});
+}
+$('#consoleExpand').addEventListener('click',()=>focusConsole(!$('.app-shell').classList.contains('console-focus')));
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&$('.app-shell').classList.contains('console-focus')&&!document.querySelector('dialog[open]')){event.preventDefault();focusConsole(false);}
+});
 $('#clearOutput').addEventListener('click',()=>{transcript='';showOutput();$('#output').classList.remove('error');});
 $('#inputForm').addEventListener('submit',e=>{e.preventDefault();if(!inputRequest)return;try{runner.respondInput(inputRequest.id,$('#stdinValue').value);$('#inputForm').hidden=true;inputRequest=null;}catch(error){message(error.message);}});
 $('#eofButton').addEventListener('click',()=>{if(inputRequest)runner.respondInput(inputRequest.id,null);inputRequest=null;$('#inputForm').hidden=true;});
@@ -109,4 +142,10 @@ $('#zoomIn').addEventListener('click',()=>zoom(1));$('#zoomOut').addEventListene
 window.addEventListener('pagehide',()=>{saveEditor();runner.stop();});
 if(window.visualViewport){const adjust=()=>{document.querySelector('.app-shell').style.height=window.visualViewport.height+'px';};window.visualViewport.addEventListener('resize',adjust);adjust();}
 $('#activeName').textContent=workspace.activeFile;renderFiles();updateCursor();
+learning=await createLearningUI({getWorkspace:()=>workspace,message,onCheck:selected=>runCode(selected),loadExercise:lesson=>{
+ saveEditor();editorStates.set(workspace.activeFile,view.state);
+ const base='exercise_'+lesson.id.replace(/[^A-Za-z0-9_]/g,'_');let name=base+'.py',suffix=2;
+ while(workspace.files.some(f=>f.name===name))name=`${base}_${suffix++}.py`;
+ workspace=saveFile(createFile(workspace,name),name,lesson.task.starter);persist();showActive();view.focus();return name;
+}});
 if(window.__MUPAD_SELFTEST__)import('./native-selftest.js');

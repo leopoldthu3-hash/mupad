@@ -14,3 +14,8 @@ __pycache__/
 *.p12
 *.mobileprovision
 qa-*.png
+dist/
+desktop-selftest.json
+*.AppImage
+*.deb
+*.exe

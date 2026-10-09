@@ -9,7 +9,9 @@ The project installs dependencies through npm; the lockfile records exact versio
 - **Capacitor** (`@capacitor/core`, `@capacitor/ios`, and the filesystem/share plugins): MIT. Sources: https://github.com/ionic-team/capacitor and https://github.com/ionic-team/capacitor-plugins.
 - **CodeMirror** (`@codemirror/*`) and its editor dependencies, including Lezer: MIT. Sources: https://github.com/codemirror and https://github.com/lezer-parser.
 
-Development tools have their own licenses too; these include Playwright (Apache 2.0), esbuild (MIT), and TypeScript (Apache 2.0). Their exact versions are in `package-lock.json`.
+- **Electron** (44.7.0, Windows/Linux shell): MIT. Chromium components retain their own licenses; desktop packages preserve their bundled notices. Source: https://github.com/electron/electron.
+
+Build tools include electron-builder (MIT), Playwright (Apache 2.0), esbuild (MIT), and TypeScript (Apache 2.0). Versions are in package-lock.json.
 
 `npm run bundle` generates `www/third-party-notices.txt` from the license files of the actual bundled editor dependencies, MuPad's license, and the interpreter license texts in `licenses/`. Capacitor copies that file into the packaged app alongside the runtime.
 
