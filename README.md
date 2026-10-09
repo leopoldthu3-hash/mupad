@@ -37,9 +37,11 @@ Open **Learn Python**, choose a lesson, and load its exercise. MuPad creates a s
 
 Create, rename, import and export `.py` files. Drafts save automatically. The editor includes syntax highlighting, line numbers, four-space indentation, search, and undo/redo. Run scripts locally, import another workspace file, watch output live, or stop an infinite loop without locking up the interface.
 
-![MuPad editor with Python code and program output](docs/images/editor-ipad.png)
+![MuPad 0.3 learning editor with a genuinely checked Python exercise](docs/images/learning-editor.png)
 
-*Editor screenshot from the earlier 0.2 release, running in iPad-sized WebKit. The 0.3 learning interface adds controls around the same editor.*
+![MuPad's beginner Python courses](docs/images/learning-courses.png)
+
+*Screenshots of the actual 0.3 production UI in Chromium. The shown exercise was executed and passed real Python checks.*
 
 ## A few limits
 

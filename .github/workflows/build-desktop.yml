@@ -104,6 +104,11 @@ jobs:
           sudo chmod 4755 dist/desktop/linux-unpacked/chrome-sandbox
       - name: Test the actual packaged Linux application
         run: xvfb-run -a node desktop/selftest.mjs --executable dist/desktop/linux-unpacked/mupad --require-packaged --report dist/desktop/selftest-packaged-linux.json
+      - name: Test the actual AppImage with the trusted CI host sandbox
+        run: |
+          image=$(realpath dist/desktop/*.AppImage)
+          chmod +x "$image"
+          CHROME_DEVEL_SANDBOX="$PWD/node_modules/electron/dist/chrome-sandbox" xvfb-run -a node desktop/selftest.mjs --executable "$image" --require-packaged --report dist/desktop/selftest-appimage-linux.json
       - name: Install and exercise the actual Debian package
         run: |
           sudo apt-get install -y ./dist/desktop/*.deb

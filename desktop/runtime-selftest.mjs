@@ -16,8 +16,16 @@ export async function runRuntimeSelftest(window, {phase, app}) {
   }
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   async function code(text) {
+    const before = await editorText();
+    window.focus();
+    wc.focus();
     await evaluate(`document.querySelector('[aria-label="Python code"]').focus()`);
-    wc.selectAll();
+    const modifiers = [process.platform === 'darwin' ? 'meta' : 'control'];
+    // CodeMirror owns the selection. Native menu selectAll() can race its
+    // selectionchange observer; use its actual keyboard command and read back.
+    wc.sendInputEvent({type:'keyDown',keyCode:'A',modifiers});
+    wc.sendInputEvent({type:'keyUp',keyCode:'A',modifiers});
+    await wait(`document.getSelection().toString() === ${JSON.stringify(before)}`, 'editor selected all existing code before replacement', 10000);
     await wc.insertText(text);
     await wait(`(()=>{const workspace=JSON.parse(localStorage.getItem('mupad-workspace-v1'));return workspace.files.find(file=>file.name===workspace.activeFile)?.content===${JSON.stringify(text)};})()`, 'active editor file saved actual text', 10000);
     assert.equal(await editorText(), text, 'native text insertion changed the real CodeMirror document');
