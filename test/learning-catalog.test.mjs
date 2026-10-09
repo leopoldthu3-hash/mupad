@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as directory:
 `;
 
 function runPython(program, checks = '', stdin = []) {
-  const result = spawnSync(process.env.PYTHON || 'python3', ['-I', '-c', harness], {
+  const result = spawnSync(process.env.PYTHON || 'python3', ['-I', '-X', 'utf8', '-c', harness], {
     input: JSON.stringify({ program, checks, stdin }),
     encoding: 'utf8',
     timeout: 10000,

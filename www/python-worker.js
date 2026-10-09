@@ -1,6 +1,7 @@
 import {loadPyodide} from './pyodide/pyodide.mjs';
+import {pyodideIndexURL} from './runtime-path.mjs';
 const directory = new URL('./pyodide/', import.meta.url);
-const python = loadPyodide({indexURL:directory.protocol === 'file:' ? directory.pathname : directory.href});
+const python = loadPyodide({indexURL:pyodideIndexURL(directory)});
 const pendingInputs = new Map();
 let inputSequence = 0;
 self.onmessage = async ({data}) => {
